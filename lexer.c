@@ -17,7 +17,11 @@ const char* lexer_token_type_to_string(const TokenType type)
     case t_minus: return "MINUS";
     case t_star: return "STAR";
     case t_slash: return "SLASH";
+    case t_equal: return "EQUAL";
     case t_number: return "NUMBER";
+    case t_identifier: return "IDENTIFIER";
+    case t_primitive_type: return "TYPE";
+    case t_semicolon: return "SEMI";
     case t_eof: return "EOF";
     default: return "UNKNOWN";
     }
@@ -61,6 +65,12 @@ void lexer_scan(const Lexer* lexer)
         case '/':
             lexer_add((Lexer*)lexer, t_slash, "/");
             break;
+        case '=':
+            lexer_add((Lexer*)lexer, t_equal, "=");
+            break;
+        case ';':
+            lexer_add((Lexer*)lexer, t_semicolon, ";");
+            break;
         default:
             if (isdigit(lexer->source[i]))
             {
@@ -76,10 +86,30 @@ void lexer_scan(const Lexer* lexer)
                 lexer_add((Lexer*)lexer, t_number, number);
                 i = number_end - 1;
             }
+            else if (isalnum(lexer->source[i]))
+            {
+                const int identifier_start = i;
+                int identifier_end = identifier_start;
+
+                while (isalnum(lexer->source[identifier_end]))
+                    identifier_end++;
+
+                const int identifier_length = identifier_end - identifier_start;
+                const char* identifier = malloc(identifier_length + 1);
+                strncpy((char*)identifier, &lexer->source[identifier_start], identifier_length);
+
+                if (!strcmp(identifier, "int"))
+                    lexer_add((Lexer*)lexer, t_primitive_type, identifier);
+                else
+                    lexer_add((Lexer*)lexer, t_identifier, identifier);
+
+                i = identifier_end - 1;
+            }
             else
             {
                 error(lexer->line, "Unknown Token");
             }
+
             break;
         }
     }

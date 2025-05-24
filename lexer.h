@@ -11,7 +11,11 @@ typedef enum
     t_minus,
     t_star,
     t_slash,
+    t_equal,
     t_number,
+    t_identifier,
+    t_primitive_type,
+    t_semicolon,
     t_eof
 } TokenType;
 
