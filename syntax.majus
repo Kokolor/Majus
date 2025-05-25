@@ -1,0 +1,4 @@
+proc add(x: i32, y: i32) ret i32
+{
+    ret x + y;
+};

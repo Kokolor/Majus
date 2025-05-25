@@ -81,9 +81,11 @@ void lexer_scan(const Lexer* lexer)
                     number_end++;
 
                 const int number_length = number_end - number_start;
-                const char* number = malloc(number_length + 1);
+                char* number = malloc(number_length + 1);
                 strncpy((char*)number, &lexer->source[number_start], number_length);
+                number[number_length] = '\0';
                 lexer_add((Lexer*)lexer, t_number, number);
+                free(number);
                 i = number_end - 1;
             }
             else if (isalnum(lexer->source[i]))
@@ -95,14 +97,16 @@ void lexer_scan(const Lexer* lexer)
                     identifier_end++;
 
                 const int identifier_length = identifier_end - identifier_start;
-                const char* identifier = malloc(identifier_length + 1);
+                char* identifier = malloc(identifier_length + 1);
                 strncpy((char*)identifier, &lexer->source[identifier_start], identifier_length);
+                identifier[identifier_length] = '\0';
 
                 if (!strcmp(identifier, "int"))
                     lexer_add((Lexer*)lexer, t_primitive_type, identifier);
                 else
                     lexer_add((Lexer*)lexer, t_identifier, identifier);
 
+                free(identifier);
                 i = identifier_end - 1;
             }
             else
@@ -129,4 +133,7 @@ void lexer_init(Lexer* lexer, const char* source)
 {
     lexer->source = source;
     lexer->line = 0;
+    lexer->tokens.tokens = NULL;
+    lexer->tokens.count = 0;
+    lexer->tokens.capacity = 0;
 }
