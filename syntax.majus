@@ -1,4 +1,10 @@
-proc add(x: i32, y: i32) ret i32
-{
-    ret x + y;
-};
+// comments start with //
+
+// make a variable mutable with @mut
+// var @parameters name: type = value;
+var immutableVariable: i32 = 14;
+var @mut (x, y): (i32, i32) = (15, 43);
+
+// declare an array
+var @mut nums: [i32, 5] = [1, 2, 3, 4, 5]:
+nums[2] = 7;
