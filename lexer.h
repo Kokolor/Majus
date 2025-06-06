@@ -15,7 +15,9 @@ typedef enum
     t_number,
     t_identifier,
     t_primitive_type,
+    t_colon,
     t_semicolon,
+    t_var,
     t_eof
 } TokenType;
 
@@ -43,7 +45,7 @@ const char* lexer_token_type_to_string(const TokenType type);
 
 void lexer_add(Lexer* lexer, const TokenType type, const char* value);
 
-void lexer_scan(const Lexer* lexer);
+void lexer_scan(Lexer* lexer);
 
 void lexer_free(const Lexer* lexer);
 

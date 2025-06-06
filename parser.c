@@ -94,9 +94,74 @@ Node* parser_parse_expression(Parser* parser)
     return left_node;
 }
 
+Node* parser_parse_statement(Parser* parser)
+{
+    switch (parser_get_current_token_type(parser))
+    {
+    case t_var:
+        return parser_parse_variable_declaration(parser);
+    default:
+        return parser_parse_expression(parser);
+    }
+}
+
+Node* parser_parse_variable_declaration(Parser* parser)
+{
+    parser_advance(parser);
+
+    if (parser_get_current_token_type(parser) != t_identifier)
+        error(0, "Expected identifier after 'var'");
+
+    const char* variable_name = parser->tokens.tokens[parser->current_token].value;
+    parser_advance(parser);
+
+    if (parser_get_current_token_type(parser) != t_equal)
+        error(0, "Expected '=' after variable name");
+
+    parser_advance(parser);
+
+    Node* expression_node = parser_parse_expression(parser);
+
+    if (parser_get_current_token_type(parser) != t_semicolon)
+        error(0, "Expected ';' after variable declaration");
+
+    parser_advance(parser);
+
+    Node* node = parser_create_node(t_var, NULL, expression_node, NULL);
+    node->type = n_variable_declaration;
+    node->variable_name = strdup(variable_name);
+
+    return node;
+}
+
 Node* parser_parse(Parser* parser)
 {
-    return parser_parse_expression(parser);
+    Node* program_node = malloc(sizeof(Node));
+    if (!program_node)
+        error(0, "Cannot allocate program node");
+
+    program_node->type = n_program;
+    program_node->operation_token = t_eof;
+    program_node->value = NULL;
+    program_node->variable_name = NULL;
+    program_node->left_node = NULL;
+    program_node->right_node = NULL;
+    program_node->statements = NULL;
+    program_node->statements_count = 0;
+
+    while (parser_get_current_token_type(parser) != t_eof)
+    {
+        Node* statement = parser_parse_statement(parser);
+
+        if (statement != NULL)
+        {
+            program_node->statements = realloc(program_node->statements,
+                                               sizeof(Node*) * (program_node->statements_count + 1));
+            program_node->statements[program_node->statements_count++] = statement;
+        }
+    }
+
+    return program_node;
 }
 
 void parser_free(Node* node)
@@ -104,9 +169,25 @@ void parser_free(Node* node)
     if (node == NULL)
         return;
 
-    parser_free(node->left_node);
-    parser_free(node->right_node);
-    free(node->value);
+    if (node->type == n_program)
+    {
+        for (int i = 0; i < node->statements_count; i++)
+            parser_free(node->statements[i]);
+        free(node->statements);
+    }
+    else if (node->type == n_variable_declaration)
+    {
+        free(node->variable_name);
+        parser_free(node->right_node);
+    }
+    else
+    {
+        parser_free(node->left_node);
+        parser_free(node->right_node);
+        if (node->value)
+            free(node->value);
+    }
+
     free(node);
 }
 

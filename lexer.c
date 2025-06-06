@@ -21,7 +21,9 @@ const char* lexer_token_type_to_string(const TokenType type)
     case t_number: return "NUMBER";
     case t_identifier: return "IDENTIFIER";
     case t_primitive_type: return "TYPE";
+    case t_colon: return "COLON";
     case t_semicolon: return "SEMI";
+    case t_var: return "VAR";
     case t_eof: return "EOF";
     default: return "UNKNOWN";
     }
@@ -45,13 +47,16 @@ void lexer_add(Lexer* lexer, const TokenType type, const char* value)
     lexer->tokens.count++;
 }
 
-void lexer_scan(const Lexer* lexer)
+void lexer_scan(Lexer* lexer)
 {
     for (int i = 0; i < strlen(lexer->source); i++)
     {
         switch (lexer->source[i])
         {
         case ' ':
+            break;
+        case '\n':
+            lexer->line++;
             break;
         case '+':
             lexer_add((Lexer*)lexer, t_plus, "+");
@@ -67,6 +72,9 @@ void lexer_scan(const Lexer* lexer)
             break;
         case '=':
             lexer_add((Lexer*)lexer, t_equal, "=");
+            break;
+        case ':':
+            lexer_add((Lexer*)lexer, t_colon, ":");
             break;
         case ';':
             lexer_add((Lexer*)lexer, t_semicolon, ";");
@@ -103,6 +111,8 @@ void lexer_scan(const Lexer* lexer)
 
                 if (!strcmp(identifier, "int"))
                     lexer_add((Lexer*)lexer, t_primitive_type, identifier);
+                else if (!strcmp(identifier, "var"))
+                    lexer_add((Lexer*)lexer, t_var, identifier);
                 else
                     lexer_add((Lexer*)lexer, t_identifier, identifier);
 

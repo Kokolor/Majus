@@ -10,7 +10,7 @@
 int main(void)
 {
     Lexer lexer;
-    lexer_init(&lexer, "42 + 3 * 2");
+    lexer_init(&lexer, "var hello = 14 + 2;\nvar variable = 2;");
     lexer_scan(&lexer);
 
     for (int i = 0; i < lexer.tokens.count; i++)
@@ -32,8 +32,8 @@ int main(void)
     LLVMValueRef main_func = LLVMAddFunction(codegen.module, "main", main_type);
     LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(codegen.context, main_func, "entry");
     LLVMPositionBuilderAtEnd(codegen.builder, entry);
-    LLVMValueRef result = codegen_expression(&codegen, ast);
-    LLVMBuildRet(codegen.builder, result);
+    codegen_generate_statement(&codegen, ast);
+    LLVMBuildRet(codegen.builder, LLVMConstInt(LLVMInt32TypeInContext(codegen.context), 0, 0));
     LLVMDumpModule(codegen.module);
 
     parser_free(ast);

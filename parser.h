@@ -9,12 +9,23 @@
 
 typedef struct Node Node;
 
+typedef enum
+{
+    n_expression,
+    n_variable_declaration,
+    n_program
+} NodeType;
+
 struct Node
 {
     TokenType operation_token;
+    NodeType type;
     Node* left_node;
     Node* right_node;
+    Node** statements;
     char* value;
+    char* variable_name;
+    int statements_count;
 };
 
 typedef struct
@@ -36,6 +47,10 @@ Node* parser_parse_factor(Parser* parser);
 Node* parser_parse_term(Parser* parser);
 
 Node* parser_parse_expression(Parser* parser);
+
+Node* parser_parse_statement(Parser* parser);
+
+Node* parser_parse_variable_declaration(Parser* parser);
 
 Node* parser_parse(Parser* parser);
 
