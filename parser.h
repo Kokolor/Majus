@@ -25,6 +25,7 @@ struct Node
     Node** statements;
     char* value;
     char* variable_name;
+    char* data_type;
     int statements_count;
 };
 
@@ -33,8 +34,6 @@ typedef struct
     TokenList tokens;
     int current_token;
 } Parser;
-
-void parser_print_ast(const Node* node, const int indentation);
 
 Node* parser_create_node(const TokenType operation, Node* left_node, Node* right_node, const char* value);
 

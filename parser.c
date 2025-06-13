@@ -8,23 +8,6 @@
 #include "errors.h"
 #include "parser.h"
 
-void parser_print_ast(const Node* node, const int indentation)
-{
-    if (node == NULL)
-        return;
-
-    for (int i = 0; i < indentation; i++)
-        printf("\t");
-
-    if (node->value)
-        printf("%s (%s)\n", lexer_token_type_to_string(node->operation_token), node->value);
-    else
-        printf("%s\n", lexer_token_type_to_string(node->operation_token));
-
-    parser_print_ast(node->left_node, indentation + 1);
-    parser_print_ast(node->right_node, indentation + 1);
-}
-
 Node* parser_create_node(const TokenType operation, Node* left_node, Node* right_node, const char* value)
 {
     Node* node = (Node*)malloc(sizeof(Node));
@@ -35,6 +18,7 @@ Node* parser_create_node(const TokenType operation, Node* left_node, Node* right
     node->left_node = left_node;
     node->right_node = right_node;
     node->value = value ? strdup(value) : NULL;
+    node->data_type = NULL;
 
     return node;
 }
@@ -115,6 +99,17 @@ Node* parser_parse_variable_declaration(Parser* parser)
     const char* variable_name = parser->tokens.tokens[parser->current_token].value;
     parser_advance(parser);
 
+    if (parser_get_current_token_type(parser) != t_colon)
+        error(0, "Expected ':' after variable name");
+
+    parser_advance(parser);
+
+    if (parser_get_current_token_type(parser) != t_primitive_type)
+        error(0, "Expected data type after colon");
+
+    const char* data_type = parser->tokens.tokens[parser->current_token].value;
+    parser_advance(parser);
+
     if (parser_get_current_token_type(parser) != t_equal)
         error(0, "Expected '=' after variable name");
 
@@ -130,6 +125,7 @@ Node* parser_parse_variable_declaration(Parser* parser)
     Node* node = parser_create_node(t_var, NULL, expression_node, NULL);
     node->type = n_variable_declaration;
     node->variable_name = strdup(variable_name);
+    node->data_type = (char*)data_type;
 
     return node;
 }

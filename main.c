@@ -1,16 +1,14 @@
 #include <stdio.h>
-#include <llvm-c-18/llvm-c/Core.h>
-#include <llvm-c-18/llvm-c/Types.h>
-
+#include <llvm-c/Core.h>
+#include <llvm-c/Types.h>
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
 
-
 int main(void)
 {
     Lexer lexer;
-    lexer_init(&lexer, "var hello = 14 + 2;\nvar variable = 2;");
+    lexer_init(&lexer, "var hello: i8 = 14 + 2;\nvar variable: i32 = 7 * 3;");
     lexer_scan(&lexer);
 
     for (int i = 0; i < lexer.tokens.count; i++)
@@ -23,7 +21,6 @@ int main(void)
     parser_init(&parser, lexer.tokens);
 
     Node* ast = parser_parse(&parser);
-    parser_print_ast(ast, 0);
 
     Codegen codegen;
     codegen_init(&codegen);

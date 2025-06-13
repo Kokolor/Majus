@@ -2,13 +2,27 @@
 // Created by kokolor on 25/05/25.
 //
 
+#include <stdio.h>
 #include <stdlib.h>
-#include <llvm-c-18/llvm-c/Core.h>
-#include <llvm-c-18/llvm-c/Types.h>
+#include <string.h>
+#include <llvm-c/Core.h>
+#include <llvm-c/Types.h>
 #include "errors.h"
 #include "codegen.h"
 
-LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* node)
+LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type)
+{
+    if (!strcmp(type, "i8"))
+        return LLVMInt8TypeInContext(codegen->context);
+    if (!strcmp(type, "i16"))
+        return LLVMInt16TypeInContext(codegen->context);
+    if (!strcmp(type, "i32"))
+        return LLVMInt32TypeInContext(codegen->context);
+
+    error(0, "Unknown type");
+}
+
+LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* node, const char* type)
 {
     if (node == NULL)
         return NULL;
@@ -17,33 +31,32 @@ LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* nod
     {
     case t_number:
         const int value = atoi(node->value);
-
-        return LLVMConstInt(LLVMInt32TypeInContext(codegen->context), value, 0);
+        return LLVMConstInt(type_to_llvm(codegen, type), value, 0);
     case t_plus:
         {
-            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node);
-            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node);
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
 
             return LLVMBuildAdd(codegen->builder, left, right, "addtmp");
         }
     case t_minus:
         {
-            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node);
-            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node);
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
 
             return LLVMBuildSub(codegen->builder, left, right, "subtmp");
         }
     case t_star:
         {
-            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node);
-            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node);
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
 
             return LLVMBuildMul(codegen->builder, left, right, "multmp");
         }
     case t_slash:
         {
-            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node);
-            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node);
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
 
             return LLVMBuildSDiv(codegen->builder, left, right, "divtmp");
         }
@@ -61,12 +74,10 @@ LLVMValueRef codegen_generate_statement(const Codegen* codegen, const Node* node
 
     switch (node->type)
     {
-    case n_expression:
-        return codegen_generate_expression(codegen, node);
     case n_variable_declaration:
-        LLVMValueRef alloca = LLVMBuildAlloca(codegen->builder, LLVMInt32TypeInContext(codegen->context),
+        LLVMValueRef alloca = LLVMBuildAlloca(codegen->builder, type_to_llvm(codegen, node->data_type),
                                               node->variable_name);
-        LLVMValueRef value = codegen_generate_expression(codegen, node->right_node);
+        LLVMValueRef value = codegen_generate_expression(codegen, node->right_node, node->data_type);
 
         return LLVMBuildStore(codegen->builder, value, alloca);
     case n_program:

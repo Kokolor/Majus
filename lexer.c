@@ -109,7 +109,7 @@ void lexer_scan(Lexer* lexer)
                 strncpy((char*)identifier, &lexer->source[identifier_start], identifier_length);
                 identifier[identifier_length] = '\0';
 
-                if (!strcmp(identifier, "int"))
+                if (!strcmp(identifier, "i8") || !strcmp(identifier, "i16") || !strcmp(identifier, "i32"))
                     lexer_add((Lexer*)lexer, t_primitive_type, identifier);
                 else if (!strcmp(identifier, "var"))
                     lexer_add((Lexer*)lexer, t_var, identifier);
