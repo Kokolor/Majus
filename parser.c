@@ -84,6 +84,25 @@ Node* parser_parse_expression(Parser* parser)
     return left_node;
 }
 
+Node* parser_parse_comparison(Parser* parser)
+{
+    Node* left_node = parser_parse_expression(parser);
+
+    while (parser_get_current_token_type(parser) == t_not_equal || parser_get_current_token_type(parser) == t_equal ||
+        parser_get_current_token_type(parser) == t_less || parser_get_current_token_type(parser) == t_less_equal ||
+        parser_get_current_token_type(parser) == t_greater || parser_get_current_token_type(parser) == t_greater_equal)
+    {
+        const Token operation_token = parser->tokens.tokens[parser->current_token];
+        const TokenType operation_token_type = operation_token.type;
+        const int line = operation_token.line;
+        parser_advance(parser);
+        Node* right_node = parser_parse_expression(parser);
+        left_node = parser_create_node(operation_token_type, left_node, right_node, NULL, line);
+    }
+
+    return left_node;
+}
+
 Node* parser_parse_statement(Parser* parser)
 {
     switch (parser_get_current_token_type(parser))
@@ -91,7 +110,7 @@ Node* parser_parse_statement(Parser* parser)
     case t_var:
         return parser_parse_variable_declaration(parser);
     default:
-        return parser_parse_expression(parser);
+        return parser_parse_comparison(parser);
     }
 }
 
@@ -102,7 +121,9 @@ Node* parser_parse_variable_declaration(Parser* parser)
 
     parser_advance(parser);
 
-    if (parser_get_current_token_type(parser) != t_identifier) {}
+    if (parser_get_current_token_type(parser) != t_identifier)
+    {
+    }
 
     const char* variable_name = parser->tokens.tokens[parser->current_token].value;
     parser_advance(parser);
@@ -123,7 +144,7 @@ Node* parser_parse_variable_declaration(Parser* parser)
 
     parser_advance(parser);
 
-    Node* expression_node = parser_parse_expression(parser);
+    Node* expression_node = parser_parse_comparison(parser);
 
     if (parser_get_current_token_type(parser) != t_semicolon)
         error(line, "Expected ';' after variable declaration");

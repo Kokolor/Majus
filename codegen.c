@@ -60,6 +60,41 @@ LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* nod
 
             return LLVMBuildSDiv(codegen->builder, left, right, "divtmp");
         }
+    case t_not_equal:
+        {
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
+
+            return LLVMBuildICmp(codegen->builder, LLVMIntNE, left, right, "netmp");
+        }
+    case t_less:
+        {
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
+
+            return LLVMBuildICmp(codegen->builder, LLVMIntSLT, left, right, "lttmp");
+        }
+    case t_less_equal:
+        {
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
+
+            return LLVMBuildICmp(codegen->builder, LLVMIntSLE, left, right, "letmp");
+        }
+    case t_greater:
+        {
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
+
+            return LLVMBuildICmp(codegen->builder, LLVMIntSGT, left, right, "gttmp");
+        }
+    case t_greater_equal:
+        {
+            LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
+            LLVMValueRef right = codegen_generate_expression(codegen, node->right_node, type);
+
+            return LLVMBuildICmp(codegen->builder, LLVMIntSGE, left, right, "getmp");
+        }
     default:
         error(node->line, "Unsupported operation");
     }

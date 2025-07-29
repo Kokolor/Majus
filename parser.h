@@ -48,6 +48,8 @@ Node* parser_parse_term(Parser* parser);
 
 Node* parser_parse_expression(Parser* parser);
 
+Node* parser_parse_comparison(Parser* parser);
+
 Node* parser_parse_statement(Parser* parser);
 
 Node* parser_parse_variable_declaration(Parser* parser);

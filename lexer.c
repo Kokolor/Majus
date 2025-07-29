@@ -18,12 +18,18 @@ const char* lexer_token_type_to_string(const TokenType type)
     case t_star: return "STAR";
     case t_slash: return "SLASH";
     case t_equal: return "EQUAL";
+    case t_not_equal: return "NOT EQUAL";
+    case t_less: return "LESS";
+    case t_less_equal: return "LESS EQUAL";
+    case t_greater: return "GREATER";
+    case t_greater_equal: return "GREATER EQUAL";
     case t_number: return "NUMBER";
     case t_identifier: return "IDENTIFIER";
     case t_primitive_type: return "TYPE";
     case t_colon: return "COLON";
     case t_semicolon: return "SEMI";
     case t_var: return "VAR";
+    case t_fun: return "FUN";
     case t_eof: return "EOF";
     default: return "UNKNOWN";
     }
@@ -60,25 +66,52 @@ void lexer_scan(Lexer* lexer)
             lexer->line++;
             break;
         case '+':
-            lexer_add((Lexer*)lexer, t_plus, "+");
+            lexer_add(lexer, t_plus, "+");
             break;
         case '-':
-            lexer_add((Lexer*)lexer, t_minus, "-");
+            lexer_add(lexer, t_minus, "-");
             break;
         case '*':
-            lexer_add((Lexer*)lexer, t_star, "*");
+            lexer_add(lexer, t_star, "*");
             break;
         case '/':
-            lexer_add((Lexer*)lexer, t_slash, "/");
+            lexer_add(lexer, t_slash, "/");
             break;
         case '=':
-            lexer_add((Lexer*)lexer, t_equal, "=");
+            lexer_add(lexer, t_equal, "=");
+            break;
+        case '!':
+            if (lexer->source[i + 1] == '=')
+            {
+                lexer_add(lexer, t_not_equal, "!=");
+                i++;
+            }
+            else
+                error(lexer->line, "Expected '=' after '!'");
+            break;
+        case '<':
+            if (lexer->source[i + 1] == '=')
+            {
+                lexer_add(lexer, t_less_equal, "<=");
+                i++;
+            }
+            else
+                lexer_add(lexer, t_less, "<");
+            break;
+        case '>':
+            if (lexer->source[i + 1] == '=')
+            {
+                lexer_add(lexer, t_greater_equal, ">=");
+                i++;
+            }
+            else
+                lexer_add(lexer, t_greater, ">");
             break;
         case ':':
-            lexer_add((Lexer*)lexer, t_colon, ":");
+            lexer_add(lexer, t_colon, ":");
             break;
         case ';':
-            lexer_add((Lexer*)lexer, t_semicolon, ";");
+            lexer_add(lexer, t_semicolon, ";");
             break;
         default:
             if (isdigit(lexer->source[i]))
@@ -91,9 +124,9 @@ void lexer_scan(Lexer* lexer)
 
                 const int number_length = number_end - number_start;
                 char* number = malloc(number_length + 1);
-                strncpy((char*)number, &lexer->source[number_start], number_length);
+                strncpy(number, &lexer->source[number_start], number_length);
                 number[number_length] = '\0';
-                lexer_add((Lexer*)lexer, t_number, number);
+                lexer_add(lexer, t_number, number);
                 free(number);
                 i = number_end - 1;
             }
@@ -107,15 +140,17 @@ void lexer_scan(Lexer* lexer)
 
                 const int identifier_length = identifier_end - identifier_start;
                 char* identifier = malloc(identifier_length + 1);
-                strncpy((char*)identifier, &lexer->source[identifier_start], identifier_length);
+                strncpy(identifier, &lexer->source[identifier_start], identifier_length);
                 identifier[identifier_length] = '\0';
 
                 if (!strcmp(identifier, "i8") || !strcmp(identifier, "i16") || !strcmp(identifier, "i32"))
-                    lexer_add((Lexer*)lexer, t_primitive_type, identifier);
+                    lexer_add(lexer, t_primitive_type, identifier);
                 else if (!strcmp(identifier, "var"))
-                    lexer_add((Lexer*)lexer, t_var, identifier);
+                    lexer_add(lexer, t_var, identifier);
+                else if (!strcmp(identifier, "fun"))
+                    lexer_add(lexer, t_fun, identifier);
                 else
-                    lexer_add((Lexer*)lexer, t_identifier, identifier);
+                    lexer_add(lexer, t_identifier, identifier);
 
                 free(identifier);
                 i = identifier_end - 1;
@@ -129,7 +164,7 @@ void lexer_scan(Lexer* lexer)
         }
     }
 
-    lexer_add((Lexer*)lexer, t_eof, "eof");
+    lexer_add(lexer, t_eof, "eof");
 }
 
 void lexer_free(const Lexer* lexer)

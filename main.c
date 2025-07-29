@@ -8,7 +8,7 @@
 int main(void)
 {
     Lexer lexer;
-    lexer_init(&lexer, "var hello: i8 = 14 + 2;\nvar variable: i32 = 7 * 3;");
+    lexer_init(&lexer, "var hello: i8 = 14 + 2;\nvar variable: i32 = 7 != 3;");
     lexer_scan(&lexer);
 
     for (int i = 0; i < lexer.tokens.count; i++)

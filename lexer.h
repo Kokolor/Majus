@@ -12,12 +12,18 @@ typedef enum
     t_star,
     t_slash,
     t_equal,
+    t_not_equal, // !=
+    t_less, // <
+    t_less_equal, // <=
+    t_greater, // >
+    t_greater_equal, // >=
     t_number,
     t_identifier,
     t_primitive_type,
     t_colon,
     t_semicolon,
     t_var,
+    t_fun,
     t_eof
 } TokenType;
 
