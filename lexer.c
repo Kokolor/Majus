@@ -143,7 +143,9 @@ void lexer_scan(Lexer* lexer)
                 strncpy(identifier, &lexer->source[identifier_start], identifier_length);
                 identifier[identifier_length] = '\0';
 
-                if (!strcmp(identifier, "i8") || !strcmp(identifier, "i16") || !strcmp(identifier, "i32"))
+                if (!strcmp(identifier, "byte") || !strcmp(identifier, "hword") || !strcmp(identifier, "word") || !
+                    strcmp(identifier, "qword") || !strcmp(identifier, "ubyte") || !strcmp(identifier, "uhword") || !
+                    strcmp(identifier, "uword") || !strcmp(identifier, "uqword"))
                     lexer_add(lexer, t_primitive_type, identifier);
                 else if (!strcmp(identifier, "var"))
                     lexer_add(lexer, t_var, identifier);

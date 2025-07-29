@@ -2,14 +2,14 @@
 
 // make a variable mutable with ~
 // var @parameters name: type = value;
-var immutableVariable: i32 = 14;
-var~ (x, y): (i32, i32) = (15, 43);
+var immutableVariable: word = 14;
+var~ (x, y): (word, word) = (15, 43);
 
 // declare an array
-var~ nums: [i32, 5] = [1, 2, 3, 4, 5]:
+var~ nums: [uqword, 5] = [1, 2, 3, 4, 5]:
 nums[2] = 7;
 
 // declare a function
-fun add(x: i32, y: i32): i32 => {
+fun add(x: word, y: word): word => {
     x + y;
 }

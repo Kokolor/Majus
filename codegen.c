@@ -12,12 +12,23 @@
 
 LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type, int line)
 {
-    if (!strcmp(type, "i8"))
+    if (!strcmp(type, "byte"))
         return LLVMInt8TypeInContext(codegen->context);
-    if (!strcmp(type, "i16"))
+    if (!strcmp(type, "hword"))
         return LLVMInt16TypeInContext(codegen->context);
-    if (!strcmp(type, "i32"))
+    if (!strcmp(type, "word"))
         return LLVMInt32TypeInContext(codegen->context);
+    if (!strcmp(type, "qword"))
+        return LLVMInt64TypeInContext(codegen->context);
+
+    if (!strcmp(type, "ubyte"))
+        return LLVMInt8TypeInContext(codegen->context);
+    if (!strcmp(type, "uhword"))
+        return LLVMInt16TypeInContext(codegen->context);
+    if (!strcmp(type, "uword"))
+        return LLVMInt32TypeInContext(codegen->context);
+    if (!strcmp(type, "uqword"))
+        return LLVMInt64TypeInContext(codegen->context);
 
     error(line, "Unknown type");
 }
