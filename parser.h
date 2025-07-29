@@ -27,6 +27,7 @@ struct Node
     char* variable_name;
     char* data_type;
     int statements_count;
+    int line;
 };
 
 typedef struct
@@ -35,7 +36,7 @@ typedef struct
     int current_token;
 } Parser;
 
-Node* parser_create_node(const TokenType operation, Node* left_node, Node* right_node, const char* value);
+Node* parser_create_node(const TokenType operation, Node* left_node, Node* right_node, const char* value, int line);
 
 TokenType parser_get_current_token_type(const Parser* parser);
 

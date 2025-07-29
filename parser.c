@@ -8,17 +8,18 @@
 #include "errors.h"
 #include "parser.h"
 
-Node* parser_create_node(const TokenType operation, Node* left_node, Node* right_node, const char* value)
+Node* parser_create_node(const TokenType operation, Node* left_node, Node* right_node, const char* value, int line)
 {
     Node* node = (Node*)malloc(sizeof(Node));
     if (node == NULL)
-        error(0, "Cannot allocate node memory");
+        error(line, "Cannot allocate node memory");
 
     node->operation_token = operation;
     node->left_node = left_node;
     node->right_node = right_node;
     node->value = value ? strdup(value) : NULL;
     node->data_type = NULL;
+    node->line = line;
 
     return node;
 }
@@ -35,16 +36,17 @@ void parser_advance(Parser* parser)
 
 Node* parser_parse_factor(Parser* parser)
 {
-    const Token curren_token = parser->tokens.tokens[parser->current_token];
+    const Token current_token = parser->tokens.tokens[parser->current_token];
+    const int line = current_token.line;
 
-    if (curren_token.type == t_number)
+    if (current_token.type == t_number)
     {
         parser_advance(parser);
 
-        return parser_create_node(t_number, NULL, NULL, curren_token.value);
+        return parser_create_node(t_number, NULL, NULL, current_token.value, line);
     }
 
-    error(0, "Unexpected token in factor");
+    error(line, "Unexpected token in factor");
     return NULL;
 }
 
@@ -54,10 +56,12 @@ Node* parser_parse_term(Parser* parser)
 
     while (parser_get_current_token_type(parser) == t_star || parser_get_current_token_type(parser) == t_slash)
     {
-        const TokenType operation_token = parser_get_current_token_type(parser);
+        const Token operation_token = parser->tokens.tokens[parser->current_token];
+        const TokenType operation_token_type = operation_token.type;
+        const int line = operation_token.line;
         parser_advance(parser);
         Node* right_node = parser_parse_factor(parser);
-        left_node = parser_create_node(operation_token, left_node, right_node, NULL);
+        left_node = parser_create_node(operation_token_type, left_node, right_node, NULL, line);
     }
 
     return left_node;
@@ -69,10 +73,12 @@ Node* parser_parse_expression(Parser* parser)
 
     while (parser_get_current_token_type(parser) == t_plus || parser_get_current_token_type(parser) == t_minus)
     {
-        const TokenType operation_token = parser_get_current_token_type(parser);
+        const Token operation_token = parser->tokens.tokens[parser->current_token];
+        const TokenType operation_token_type = operation_token.type;
+        const int line = operation_token.line;
         parser_advance(parser);
         Node* right_node = parser_parse_term(parser);
-        left_node = parser_create_node(operation_token, left_node, right_node, NULL);
+        left_node = parser_create_node(operation_token_type, left_node, right_node, NULL, line);
     }
 
     return left_node;
@@ -91,38 +97,40 @@ Node* parser_parse_statement(Parser* parser)
 
 Node* parser_parse_variable_declaration(Parser* parser)
 {
+    const Token variable_token = parser->tokens.tokens[parser->current_token];
+    const int line = variable_token.line;
+
     parser_advance(parser);
 
-    if (parser_get_current_token_type(parser) != t_identifier)
-        error(0, "Expected identifier after 'var'");
+    if (parser_get_current_token_type(parser) != t_identifier) {}
 
     const char* variable_name = parser->tokens.tokens[parser->current_token].value;
     parser_advance(parser);
 
     if (parser_get_current_token_type(parser) != t_colon)
-        error(0, "Expected ':' after variable name");
+        error(line, "Expected ':' after variable name");
 
     parser_advance(parser);
 
     if (parser_get_current_token_type(parser) != t_primitive_type)
-        error(0, "Expected data type after colon");
+        error(line, "Expected data type after colon");
 
     const char* data_type = parser->tokens.tokens[parser->current_token].value;
     parser_advance(parser);
 
     if (parser_get_current_token_type(parser) != t_equal)
-        error(0, "Expected '=' after variable name");
+        error(line, "Expected '=' after variable name");
 
     parser_advance(parser);
 
     Node* expression_node = parser_parse_expression(parser);
 
     if (parser_get_current_token_type(parser) != t_semicolon)
-        error(0, "Expected ';' after variable declaration");
+        error(line, "Expected ';' after variable declaration");
 
     parser_advance(parser);
 
-    Node* node = parser_create_node(t_var, NULL, expression_node, NULL);
+    Node* node = parser_create_node(t_var, NULL, expression_node, NULL, line);
     node->type = n_variable_declaration;
     node->variable_name = strdup(variable_name);
     node->data_type = (char*)data_type;
@@ -134,7 +142,7 @@ Node* parser_parse(Parser* parser)
 {
     Node* program_node = malloc(sizeof(Node));
     if (!program_node)
-        error(0, "Cannot allocate program node");
+        error(parser->tokens.tokens[parser->current_token].line, "Cannot allocate program node");
 
     program_node->type = n_program;
     program_node->operation_token = t_eof;

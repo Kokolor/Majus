@@ -44,6 +44,7 @@ void lexer_add(Lexer* lexer, const TokenType type, const char* value)
 
     lexer->tokens.tokens[lexer->tokens.count].type = type;
     lexer->tokens.tokens[lexer->tokens.count].value = strdup(value);
+    lexer->tokens.tokens[lexer->tokens.count].line = lexer->line;
     lexer->tokens.count++;
 }
 

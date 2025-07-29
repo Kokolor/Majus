@@ -25,6 +25,7 @@ typedef struct
 {
     TokenType type;
     const char* value;
+    int line;
 } Token;
 
 typedef struct

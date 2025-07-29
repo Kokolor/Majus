@@ -10,7 +10,7 @@
 #include "errors.h"
 #include "codegen.h"
 
-LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type)
+LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type, int line)
 {
     if (!strcmp(type, "i8"))
         return LLVMInt8TypeInContext(codegen->context);
@@ -19,7 +19,7 @@ LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type)
     if (!strcmp(type, "i32"))
         return LLVMInt32TypeInContext(codegen->context);
 
-    error(0, "Unknown type");
+    error(line, "Unknown type");
 }
 
 LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* node, const char* type)
@@ -31,7 +31,7 @@ LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* nod
     {
     case t_number:
         const int value = atoi(node->value);
-        return LLVMConstInt(type_to_llvm(codegen, type), value, 0);
+        return LLVMConstInt(type_to_llvm(codegen, type, node->line), value, 0);
     case t_plus:
         {
             LLVMValueRef left = codegen_generate_expression(codegen, node->left_node, type);
@@ -61,7 +61,7 @@ LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* nod
             return LLVMBuildSDiv(codegen->builder, left, right, "divtmp");
         }
     default:
-        error(0, "Unsupported operation");
+        error(node->line, "Unsupported operation");
     }
 
     return NULL;
@@ -75,7 +75,7 @@ LLVMValueRef codegen_generate_statement(const Codegen* codegen, const Node* node
     switch (node->type)
     {
     case n_variable_declaration:
-        LLVMValueRef alloca = LLVMBuildAlloca(codegen->builder, type_to_llvm(codegen, node->data_type),
+        LLVMValueRef alloca = LLVMBuildAlloca(codegen->builder, type_to_llvm(codegen, node->data_type, node->line),
                                               node->variable_name);
         LLVMValueRef value = codegen_generate_expression(codegen, node->right_node, node->data_type);
 

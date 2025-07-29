@@ -14,7 +14,7 @@ typedef struct
     LLVMModuleRef module;
 } Codegen;
 
-LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type);
+LLVMTypeRef type_to_llvm(const Codegen* codegen, const char* type, int line);
 
 LLVMValueRef codegen_generate_expression(const Codegen* codegen, const Node* node, const char* type);
 
