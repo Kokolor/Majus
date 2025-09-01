@@ -7,7 +7,7 @@ package org.kokolor;
 program: (declaration | functionDecl)* EOF;
 declaration: variableDecl;
 variableDecl: IDENTIFIER ':' type '=' expression ';';
-functionDecl: IDENTIFIER '(' parameterList? ')' ':' type '{' statement* '}';
+functionDecl: ':' IDENTIFIER '(' parameterList? ')' ':' type '{' statement* '}';
 parameterList: parameter (',' parameter)*;
 parameter: IDENTIFIER ':' type;
 type: 'i8' | 'i16' | 'i32' | 'i64' | 'u8' | 'u16' | 'u32' | 'u64' | 'f32' | 'f64' | 'bool' | 'string' | 'void';
@@ -32,7 +32,8 @@ expressionStmt: expression ';';
 block: '{' statement* '}';
 
 expression:
-    '(' expression ')' # ParenExpr
+    '(' expression 'as' ':' type ')' # CastExpr
+    | '(' expression ')' # ParenExpr
     | expression ('*' | '/' | '%') expression # BinaryExpr
     | expression ('+' | '-') expression # BinaryExpr
     | expression ('<' | '<=' | '>' | '>=' | '==' | '!=') expression # ComparisonExpr

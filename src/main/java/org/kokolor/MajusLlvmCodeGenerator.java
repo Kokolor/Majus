@@ -16,17 +16,21 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
     private final Deque<Map<String, LLVMValueRef>> scopes = new ArrayDeque<>();
     private final Map<String, LLVMTypeRef> functionTypes = new HashMap<>();
     private final SymbolTable symbolTable;
+    private final int optLevel;
 
-    public MajusLlvmCodeGenerator(SymbolTable symbolTable) {
+    public MajusLlvmCodeGenerator(SymbolTable symbolTable, int optLevel) {
         this.contextRef = LLVMContextCreate();
         this.module = LLVMModuleCreateWithNameInContext("majus_module", contextRef);
         this.builder = LLVMCreateBuilderInContext(contextRef);
 
         scopes.push(new HashMap<>());
         this.symbolTable = symbolTable;
+        this.optLevel = Math.max(0, Math.min(optLevel, 3));
     }
 
     public String getIR() {
+        runOptimizationsIfNeeded();
+
         BytePointer error = new BytePointer((Pointer) null);
 
         if (LLVMVerifyModule(module, LLVMPrintMessageAction, error) != 0) {
@@ -43,6 +47,32 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
         LLVMDisposeMessage(ir);
 
         return result;
+    }
+
+    private void runOptimizationsIfNeeded() {
+        if (optLevel <= 0) return;
+
+        String pipeline = switch (optLevel) {
+            case 1 -> "default<O1>";
+            case 2 -> "default<O2>";
+            case 3 -> "default<O3>";
+            default -> "default<O0>";
+        };
+
+        LLVMPassBuilderOptionsRef options = LLVMCreatePassBuilderOptions();
+
+        LLVMErrorRef err = LLVMRunPasses(module, new BytePointer(pipeline), null, options);
+        LLVMDisposePassBuilderOptions(options);
+
+        if (err != null && !err.isNull()) {
+            BytePointer msgPtr = LLVMGetErrorMessage(err);
+            String msg = msgPtr != null ? msgPtr.getString() : "unknown error";
+            if (msgPtr != null) {
+                LLVMDisposeErrorMessage(msgPtr);
+            }
+            LLVMConsumeError(err);
+            throw new RuntimeException("LLVMRunPasses failed: " + msg);
+        }
     }
 
     private void pushScope() {
@@ -469,6 +499,14 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
         }
 
         throw new UnsupportedOperationException("Unsupported logical operator: " + op);
+    }
+
+    @Override
+    public LLVMValueRef visitCastExpr(MajusParser.CastExprContext context) {
+        LLVMValueRef value = visit(context.expression());
+        LLVMTypeRef destType = mapType(context.type().getText());
+
+        return castToType(value, destType);
     }
 
     @Override

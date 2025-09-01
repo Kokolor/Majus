@@ -10,11 +10,16 @@ public class MajusCompiler {
     private final MajusErrorHandler errorHandler;
     private final SymbolTable symbolTable;
     private boolean verbose;
+    private int optLevel = 2;
 
     public MajusCompiler() {
         this.errorHandler = new MajusErrorHandler();
         this.symbolTable = new SymbolTable();
         this.verbose = true;
+    }
+
+    public void setOptLevel(int level) {
+        this.optLevel = Math.max(0, Math.min(level, 3));
     }
 
     public CompilationResult compile(String sourceCode, String filename) {
@@ -42,7 +47,7 @@ public class MajusCompiler {
 
             System.out.println("✓ Semantic analysis completed");
             System.out.println("Phase 3: Code Generation");
-            MajusLlvmCodeGenerator codeGenerator = new MajusLlvmCodeGenerator(symbolTable);
+            MajusLlvmCodeGenerator codeGenerator = new MajusLlvmCodeGenerator(symbolTable, optLevel);
             codeGenerator.visit(tree);
             String generatedCode = codeGenerator.getIR();
             System.out.println("✓ Code generation completed");
@@ -138,12 +143,45 @@ public class MajusCompiler {
 
     public static void main(String[] args) {
         if (args.length == 0) {
-            System.out.println("Usage: java MajusCompiler <input-file>");
+            System.out.println("Usage: [--O0|--O1|--O2|--O3 | -O0|-O1|-O2|-O3] <input-file>");
             System.exit(1);
         }
 
         MajusCompiler compiler = new MajusCompiler();
-        CompilationResult result = compiler.compileFile(args[0]);
+
+        String filepath = null;
+        for (String raw : args) {
+            if (raw == null) continue;
+            String arg = raw.trim();
+            if (arg.isEmpty()) continue;
+
+            if ("--O0".equals(arg) || "-O0".equals(arg)) {
+                compiler.setOptLevel(0);
+            } else if ("--O1".equals(arg) || "-O1".equals(arg)) {
+                compiler.setOptLevel(1);
+            } else if ("--O2".equals(arg) || "-O2".equals(arg)) {
+                compiler.setOptLevel(2);
+            } else if ("--O3".equals(arg) || "-O3".equals(arg)) {
+                compiler.setOptLevel(3);
+            } else if (arg.startsWith("-O") && arg.length() == 3 && Character.isDigit(arg.charAt(2))) {
+                try {
+                    compiler.setOptLevel(Integer.parseInt(arg.substring(2)));
+                } catch (NumberFormatException ignore) { /* on ignore */ }
+            } else if (arg.startsWith("--")) {
+                System.err.println("Unknown option: " + arg);
+                System.out.println("Usage: [--O0|--O1|--O2|--O3 | -O0|-O1|-O2|-O3] <input-file>");
+                System.exit(1);
+            } else {
+                filepath = arg;
+            }
+        }
+
+        if (filepath == null) {
+            System.out.println("Usage: [--O0|--O1|--O2|--O3 | -O0|-O1|-O2|-O3] <input-file>");
+            System.exit(1);
+        }
+
+        CompilationResult result = compiler.compileFile(filepath);
         result.printResults();
         System.exit(result.isSuccess() ? 0 : 1);
     }

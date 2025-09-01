@@ -53,10 +53,10 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
         FunctionSymbol funcSymbol = new FunctionSymbol(funcName, returnType, getLine(context), getColumn(context));
 
         if (context.parameterList() != null) {
-            for (MajusParser.ParameterContext paramcontext : context.parameterList().parameter()) {
-                String paramName = paramcontext.IDENTIFIER().getText();
-                MajusType paramType = MajusType.fromString(paramcontext.type().getText());
-                VariableSymbol paramSymbol = new VariableSymbol(paramName, paramType, false, getLine(paramcontext), getColumn(paramcontext));
+            for (MajusParser.ParameterContext paramContext : context.parameterList().parameter()) {
+                String paramName = paramContext.IDENTIFIER().getText();
+                MajusType paramType = MajusType.fromString(paramContext.type().getText());
+                VariableSymbol paramSymbol = new VariableSymbol(paramName, paramType, false, getLine(paramContext), getColumn(paramContext));
                 funcSymbol.addParameter(paramSymbol);
             }
         }
@@ -80,8 +80,8 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
                 symbolTable.define(param);
             }
 
-            for (MajusParser.StatementContext stmtcontext : context.statement()) {
-                visit(stmtcontext);
+            for (MajusParser.StatementContext statementContext : context.statement()) {
+                visit(statementContext);
             }
 
             if (currentFunction.getType() != MajusType.VOID && !hasReturn) {
@@ -375,6 +375,18 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
         return MajusType.BOOL;
     }
 
+    @Override
+    public MajusType visitCastExpr(MajusParser.CastExprContext context) {
+        MajusType sourceType = visit(context.expression());
+        MajusType targetType = MajusType.fromString(context.type().getText());
+
+        if (!isExplicitCastAllowed(sourceType, targetType)) {
+            errorHandler.incompatibleTypes(sourceType.toString(), targetType.toString(), "as", getLine(context), getColumn(context));
+        }
+
+        return targetType;
+    }
+
     private boolean isAssignableType(MajusType target, MajusType source) {
         if (target == source) return false;
         if (source == MajusType.UNKNOWN) return true;
@@ -390,6 +402,16 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
 
         return left.isNumeric() && right.isNumeric();
     }
+
+    private boolean isExplicitCastAllowed(MajusType source, MajusType target) {
+        if (source == MajusType.UNKNOWN || target == MajusType.UNKNOWN) return true;
+        if (source == target) return true;
+        // if (source == MajusType.BOOL && target.isInteger()) return true;
+        // if (source.isInteger() && target == MajusType.BOOL) return true;
+
+        return source.isNumeric() && target.isNumeric();
+    }
+
 
     private MajusType checkBinaryOperation(MajusType left, MajusType right, String operator, int line, int col) {
         if (operator.equals("+") || operator.equals("-") || operator.equals("*") || operator.equals("/") || operator.equals("%")) {
