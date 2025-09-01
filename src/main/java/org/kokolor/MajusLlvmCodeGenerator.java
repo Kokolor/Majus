@@ -49,6 +49,89 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
         return result;
     }
 
+    public void emitObject(String outputPath) {
+        runOptimizationsIfNeeded();
+
+        LLVMInitializeAllTargetInfos();
+        LLVMInitializeAllTargets();
+        LLVMInitializeAllTargetMCs();
+        LLVMInitializeAllAsmParsers();
+        LLVMInitializeAllAsmPrinters();
+
+        BytePointer tripleBP = LLVMGetDefaultTargetTriple();
+        String triple = tripleBP.getString();
+
+        PointerPointer<LLVMTargetRef> targetOut = new PointerPointer<>(1);
+        BytePointer errMsg = new BytePointer((Pointer) null);
+        if (LLVMGetTargetFromTriple(triple, targetOut, errMsg) != 0) {
+            String msg = errMsg != null ? errMsg.getString() : "unknown";
+            if (errMsg != null) LLVMDisposeMessage(errMsg);
+            if (tripleBP != null) LLVMDisposeMessage(tripleBP);
+            throw new RuntimeException("Cannot get target from triple: " + msg);
+        }
+        if (errMsg != null) LLVMDisposeMessage(errMsg);
+        LLVMTargetRef target = targetOut.get(LLVMTargetRef.class, 0);
+
+        int cgOpt = switch (optLevel) {
+            case 1 -> LLVMCodeGenLevelLess;
+            case 2 -> LLVMCodeGenLevelDefault;
+            case 3 -> LLVMCodeGenLevelAggressive;
+            default -> LLVMCodeGenLevelNone;
+        };
+
+        // Utilise les surcharges String
+        LLVMTargetMachineRef tm = LLVMCreateTargetMachine(
+                target,
+                triple,
+                "generic",
+                "",
+                cgOpt,
+                LLVMRelocDefault,
+                LLVMCodeModelDefault
+        );
+
+        if (tm == null || tm.isNull()) {
+            if (tripleBP != null) LLVMDisposeMessage(tripleBP);
+            throw new RuntimeException("Failed to create TargetMachine for triple: " + triple);
+        }
+
+        LLVMTargetDataRef tdr = LLVMCreateTargetDataLayout(tm);
+        BytePointer dlBP = LLVMCopyStringRepOfTargetData(tdr);
+        String dl = dlBP.getString();
+        LLVMSetTarget(module, triple);
+        LLVMSetDataLayout(module, dl);
+        LLVMDisposeMessage(dlBP);
+
+        BytePointer verifyErr = new BytePointer((Pointer) null);
+        if (LLVMVerifyModule(module, LLVMPrintMessageAction, verifyErr) != 0) {
+            String message = verifyErr.getString();
+            LLVMDisposeMessage(verifyErr);
+            LLVMDisposeTargetMachine(tm);
+            if (tripleBP != null) LLVMDisposeMessage(tripleBP);
+            throw new RuntimeException("LLVM module verification failed: " + message);
+        }
+        LLVMDisposeMessage(verifyErr);
+
+        BytePointer outError = new BytePointer((Pointer) null);
+        int failed = LLVMTargetMachineEmitToFile(
+                tm,
+                module,
+                new BytePointer(outputPath),
+                LLVMObjectFile,
+                outError
+        );
+        if (failed != 0) {
+            String message = outError != null ? outError.getString() : "unknown error";
+            if (outError != null) LLVMDisposeMessage(outError);
+            LLVMDisposeTargetMachine(tm);
+            if (tripleBP != null) LLVMDisposeMessage(tripleBP);
+            throw new RuntimeException("Emit object failed: " + message);
+        }
+        if (outError != null) LLVMDisposeMessage(outError);
+        LLVMDisposeTargetMachine(tm);
+        if (tripleBP != null) LLVMDisposeMessage(tripleBP);
+    }
+
     private void runOptimizationsIfNeeded() {
         if (optLevel <= 0) return;
 
