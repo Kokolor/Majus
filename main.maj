@@ -1,4 +1,4 @@
-extern: printString(): void;
+extern: printInt(number: i32): void;
 
 :add(x: i32, y: i32): i32 {
     return x + y;
@@ -9,7 +9,12 @@ extern: printString(): void;
     b: i32 = 20;
     c: i32 = 0;
     c = add(a, b);
-    printString();
+    printInt(c);
+
+    while (c < 100) {
+        c = c + 1;
+        printInt(c);
+    }
 
     return c + 10;
 }

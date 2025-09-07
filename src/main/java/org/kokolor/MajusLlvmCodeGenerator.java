@@ -443,7 +443,39 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
 
     @Override
     public LLVMValueRef visitWhileStmt(MajusParser.WhileStmtContext context) {
-        throw new UnsupportedOperationException("While loop: not implemented yet.");
+        LLVMBasicBlockRef currentBlock = LLVMGetInsertBlock(builder);
+        LLVMValueRef currentFunction = LLVMGetBasicBlockParent(currentBlock);
+
+        // Crée les blocs : condition, corps et merge
+        LLVMBasicBlockRef condBB = LLVMAppendBasicBlock(currentFunction, "whilecond");
+        LLVMBasicBlockRef bodyBB = LLVMAppendBasicBlock(currentFunction, "whilebody");
+        LLVMBasicBlockRef mergeBB = LLVMAppendBasicBlock(currentFunction, "whileend");
+
+        // branche vers la condition
+        LLVMBuildBr(builder, condBB);
+
+        // positionne le builder dans le bloc condition
+        LLVMPositionBuilderAtEnd(builder, condBB);
+        LLVMValueRef conditionValue = visit(context.expression());
+        if (!isBool(LLVMTypeOf(conditionValue))) {
+            throw new UnsupportedOperationException("The while condition must be bool (i1).");
+        }
+        // branche conditionnelle vers le corps ou merge
+        LLVMBuildCondBr(builder, conditionValue, bodyBB, mergeBB);
+
+        // corps de la boucle
+        LLVMPositionBuilderAtEnd(builder, bodyBB);
+        visit(context.statement());
+
+        // si le corps n'a pas de terminator, revenir à la condition
+        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(builder)) == null) {
+            LLVMBuildBr(builder, condBB);
+        }
+
+        // positionne le builder dans le bloc merge
+        LLVMPositionBuilderAtEnd(builder, mergeBB);
+
+        return null;
     }
 
     @Override
@@ -539,6 +571,7 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
             }
 
             LLVMValueRef one = LLVMConstInt(type, 1, 0);
+
             return LLVMBuildXor(builder, valueRef, one, "not");
         }
 
@@ -593,6 +626,7 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
                 case "!=" -> LLVMIntNE;
                 default -> throw new UnsupportedOperationException("Unsupported integer comparator: " + operator);
             };
+
             return LLVMBuildICmp(builder, pred, left, right, "icmp");
         } else if (isFloat32(leftType) && isFloat32(rightType)) {
             int pred = switch (operator) {
