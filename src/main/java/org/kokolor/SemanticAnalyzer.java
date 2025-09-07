@@ -36,8 +36,12 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
 
     @Override
     public MajusType visitProgram(MajusParser.ProgramContext context) {
-        for (MajusParser.FunctionDeclContext funccontext : context.functionDecl()) {
-            collectFunctionSignature(funccontext);
+        for (MajusParser.FunctionDeclContext functionContext : context.functionDecl()) {
+            collectFunctionSignature(functionContext);
+        }
+
+        for (MajusParser.ExternFunctionDeclContext externContext : context.externFunctionDecl()) {
+            collectExternFunctionSignature(externContext);
         }
 
         for (ParseTree child : context.children) {
@@ -48,6 +52,25 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
     }
 
     private void collectFunctionSignature(MajusParser.FunctionDeclContext context) {
+        String funcName = context.IDENTIFIER().getText();
+        MajusType returnType = MajusType.fromString(context.type().getText());
+        FunctionSymbol funcSymbol = new FunctionSymbol(funcName, returnType, getLine(context), getColumn(context));
+
+        if (context.parameterList() != null) {
+            for (MajusParser.ParameterContext paramContext : context.parameterList().parameter()) {
+                String paramName = paramContext.IDENTIFIER().getText();
+                MajusType paramType = MajusType.fromString(paramContext.type().getText());
+                VariableSymbol paramSymbol = new VariableSymbol(paramName, paramType, false, getLine(paramContext), getColumn(paramContext));
+                funcSymbol.addParameter(paramSymbol);
+            }
+        }
+
+        if (!symbolTable.define(funcSymbol)) {
+            errorHandler.redefinedSymbol(funcName, getLine(context), getColumn(context));
+        }
+    }
+
+    private void collectExternFunctionSignature(MajusParser.ExternFunctionDeclContext context) {
         String funcName = context.IDENTIFIER().getText();
         MajusType returnType = MajusType.fromString(context.type().getText());
         FunctionSymbol funcSymbol = new FunctionSymbol(funcName, returnType, getLine(context), getColumn(context));
@@ -330,6 +353,11 @@ public class SemanticAnalyzer extends MajusBaseVisitor<MajusType> {
         }
 
         return funcSymbol.getType();
+    }
+
+    @Override
+    public MajusType visitExternFunctionDecl(MajusParser.ExternFunctionDeclContext context) {
+        return MajusType.VOID;
     }
 
     @Override

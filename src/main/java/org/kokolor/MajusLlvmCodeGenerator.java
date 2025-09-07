@@ -79,7 +79,6 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
             default -> LLVMCodeGenLevelNone;
         };
 
-        // Utilise les surcharges String
         LLVMTargetMachineRef tm = LLVMCreateTargetMachine(
                 target,
                 triple,
@@ -255,34 +254,71 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
     @Override
     public LLVMValueRef visitProgram(MajusParser.ProgramContext context) {
         for (MajusParser.FunctionDeclContext function : context.functionDecl()) {
+            declareFunctionPrototype(function.IDENTIFIER().getText(), function.type().getText(), function.parameterList());
+        }
+
+        for (MajusParser.ExternFunctionDeclContext externFunction : context.externFunctionDecl()) {
+            declareFunctionPrototype(externFunction.IDENTIFIER().getText(), externFunction.type().getText(), externFunction.parameterList());
+        }
+
+        for (MajusParser.FunctionDeclContext function : context.functionDecl()) {
             visit(function);
         }
 
         return null;
     }
 
-    @Override
-    public LLVMValueRef visitFunctionDecl(MajusParser.FunctionDeclContext context) {
-        String functionName = context.IDENTIFIER().getText();
-        LLVMTypeRef returnType = mapType(context.type().getText());
+    private void declareFunctionPrototype(String functionName, String returnTypeText, MajusParser.ParameterListContext params) {
+        if (functionTypes.containsKey(functionName)) {
+            return;
+        }
+
+        LLVMTypeRef returnType = mapType(returnTypeText);
 
         List<LLVMTypeRef> paramTypes = new ArrayList<>();
-        List<String> paramNames = new ArrayList<>();
-        if (context.parameterList() != null) {
-            for (MajusParser.ParameterContext p : context.parameterList().parameter()) {
+
+        if (params != null) {
+            for (MajusParser.ParameterContext p : params.parameter()) {
                 paramTypes.add(mapType(p.type().getText()));
-                paramNames.add(p.IDENTIFIER().getText());
             }
         }
 
         PointerPointer<LLVMTypeRef> paramsArray = new PointerPointer<>(paramTypes.size());
+
         for (int i = 0; i < paramTypes.size(); i++) {
             paramsArray.put(i, paramTypes.get(i));
         }
 
         LLVMTypeRef functionType = LLVMFunctionType(returnType, paramsArray, paramTypes.size(), 0);
-        LLVMValueRef function = LLVMAddFunction(module, functionName, functionType);
+        LLVMValueRef function = LLVMGetNamedFunction(module, functionName);
+
+        if (function == null) {
+            function = LLVMAddFunction(module, functionName, functionType);
+        }
+
         functionTypes.put(functionName, functionType);
+    }
+
+    @Override
+    public LLVMValueRef visitFunctionDecl(MajusParser.FunctionDeclContext context) {
+        String functionName = context.IDENTIFIER().getText();
+        LLVMTypeRef functionType = functionTypes.get(functionName);
+
+        if (functionType == null) {
+            declareFunctionPrototype(functionName, context.type().getText(), context.parameterList());
+            functionType = functionTypes.get(functionName);
+        }
+
+        LLVMValueRef function = LLVMGetNamedFunction(module, functionName);
+        List<String> paramNames = new ArrayList<>();
+        List<LLVMTypeRef> paramTypes = new ArrayList<>();
+
+        if (context.parameterList() != null) {
+            for (MajusParser.ParameterContext parameter : context.parameterList().parameter()) {
+                paramNames.add(parameter.IDENTIFIER().getText());
+                paramTypes.add(mapType(parameter.type().getText()));
+            }
+        }
 
         for (int i = 0; i < paramNames.size(); i++) {
             LLVMValueRef param = LLVMGetParam(function, i);
@@ -301,7 +337,6 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
             LLVMTypeRef pty = paramTypes.get(i);
             LLVMValueRef alloca = LLVMBuildAlloca(builder, pty, paramName);
             LLVMBuildStore(builder, param, alloca);
-
             defineLocal(paramName, alloca);
         }
 
@@ -317,6 +352,17 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
 
         return function;
     }
+
+    public LLVMValueRef visitExternFunctionDecl(MajusParser.ExternFunctionDeclContext context) {
+        String functionName = context.IDENTIFIER().getText();
+
+        if (!functionTypes.containsKey(functionName)) {
+            declareFunctionPrototype(functionName, context.type().getText(), context.parameterList());
+        }
+
+        return LLVMGetNamedFunction(module, functionName);
+    }
+
 
     @Override
     public LLVMValueRef visitBlock(MajusParser.BlockContext context) {

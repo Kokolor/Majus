@@ -1,0 +1,15 @@
+extern: printString(): void;
+
+:add(x: i32, y: i32): i32 {
+    return x + y;
+}
+
+:main(): i32 {
+    a: i32 = 10;
+    b: i32 = 20;
+    c: i32 = 0;
+    c = add(a, b);
+    printString();
+
+    return c + 10;
+}

@@ -199,7 +199,8 @@ public class MajusCompiler {
             } else if (arg.startsWith("-O") && arg.length() == 3 && Character.isDigit(arg.charAt(2))) {
                 try {
                     compiler.setOptLevel(Integer.parseInt(arg.substring(2)));
-                } catch (NumberFormatException ignore) { /* ignore */ }
+                } catch (NumberFormatException ignore) {
+                }
             } else if (arg.startsWith("--")) {
                 System.err.println("Unknown option: " + arg);
                 System.out.println("Usage: [--emit-ll] [--emit-o] [--O0|--O1|--O2|--O3 | -O0|-O1|-O2|-O3] <input-file>");
