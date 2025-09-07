@@ -445,34 +445,26 @@ public class MajusLlvmCodeGenerator extends MajusBaseVisitor<LLVMValueRef> {
     public LLVMValueRef visitWhileStmt(MajusParser.WhileStmtContext context) {
         LLVMBasicBlockRef currentBlock = LLVMGetInsertBlock(builder);
         LLVMValueRef currentFunction = LLVMGetBasicBlockParent(currentBlock);
-
-        // Crée les blocs : condition, corps et merge
         LLVMBasicBlockRef condBB = LLVMAppendBasicBlock(currentFunction, "whilecond");
         LLVMBasicBlockRef bodyBB = LLVMAppendBasicBlock(currentFunction, "whilebody");
         LLVMBasicBlockRef mergeBB = LLVMAppendBasicBlock(currentFunction, "whileend");
-
-        // branche vers la condition
         LLVMBuildBr(builder, condBB);
-
-        // positionne le builder dans le bloc condition
         LLVMPositionBuilderAtEnd(builder, condBB);
         LLVMValueRef conditionValue = visit(context.expression());
+
         if (!isBool(LLVMTypeOf(conditionValue))) {
             throw new UnsupportedOperationException("The while condition must be bool (i1).");
         }
-        // branche conditionnelle vers le corps ou merge
+
         LLVMBuildCondBr(builder, conditionValue, bodyBB, mergeBB);
 
-        // corps de la boucle
         LLVMPositionBuilderAtEnd(builder, bodyBB);
         visit(context.statement());
 
-        // si le corps n'a pas de terminator, revenir à la condition
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(builder)) == null) {
             LLVMBuildBr(builder, condBB);
         }
 
-        // positionne le builder dans le bloc merge
         LLVMPositionBuilderAtEnd(builder, mergeBB);
 
         return null;
